@@ -1,3 +1,5 @@
+
+
 module "ecs" {
   source = "terraform-aws-modules/ecs/aws"
 
@@ -26,7 +28,7 @@ module "ecs" {
   }
 
   services = {
-    ecsdemo-frontend = {
+    librechat = {
       cpu    = 1024
       memory = 4096
 
@@ -50,7 +52,7 @@ module "ecs" {
           ]
           dependencies = [{
             condition = "SUCCESS"
-            container_name = "rag_api"
+            containerName = "rag_api"
           }]
           environment = [
             {
@@ -88,8 +90,8 @@ module "ecs" {
           ]
           extra_hosts = [
             {
-              hostname = host.docker.internal
-              ip_address = host-gateway
+              hostname = "host.docker.internal"
+              ipAddress = "host-gateway"
             }
           ]
           log_configuration = {
@@ -126,27 +128,27 @@ module "ecs" {
         # }
       }
 
-      service_connect_configuration = {
-        namespace = "example"
-        service = {
-          client_alias = {
-            port     = 80
-            dns_name = "ecs-sample"
-          }
-          port_name      = "ecs-sample"
-          discovery_name = "ecs-sample"
-        }
-      }
+      # service_connect_configuration = {
+      #   namespace = "example"
+      #   service = {
+      #     client_alias = {
+      #       port     = 80
+      #       dns_name = "ecs-sample"
+      #     }
+      #     port_name      = "ecs-sample"
+      #     discovery_name = "ecs-sample"
+      #   }
+      # }
 
-      load_balancer = {
-        service = {
-          target_group_arn = "arn:aws:elasticloadbalancing:eu-west-1:1234567890:targetgroup/bluegreentarget1/209a844cd01825a4"
-          container_name   = "ecs-sample"
-          container_port   = 80
-        }
-      }
+      # load_balancer = {
+      #   service = {
+      #     target_group_arn = "arn:aws:elasticloadbalancing:eu-west-1:1234567890:targetgroup/bluegreentarget1/209a844cd01825a4"
+      #     container_name   = "ecs-sample"
+      #     container_port   = 80
+      #   }
+      # }
 
-      subnet_ids = ["subnet-abcde012", "subnet-bcde012a", "subnet-fghi345a"]
+      subnet_ids = ["${aws_subnet.subnet_1.id}", "${aws_subnet.subnet_2.id}", "${aws_subnet.subnet_3.id}"]
       security_group_rules = {
         alb_ingress_3000 = {
           type                     = "ingress"
