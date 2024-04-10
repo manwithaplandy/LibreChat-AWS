@@ -9,3 +9,7 @@ resource "random_password" "mongodb_password" {
   special          = true
   override_special = "_%@"
 }
+
+resource random_pet "bucket_suffix" {
+  length = 2
+}

@@ -10,14 +10,17 @@ resource "aws_vpc" "vpc" {
 resource "aws_subnet" "subnet_1" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = "10.0.1.0/24" 
+  availability_zone = "us-west-1a"
 }
 
 resource "aws_subnet" "subnet_2" {
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.2.0/24" 
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-west-1b"
 }
 
 resource "aws_subnet" "subnet_3" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = "10.0.3.0/24" 
+  availability_zone = "us-west-1c"
 }

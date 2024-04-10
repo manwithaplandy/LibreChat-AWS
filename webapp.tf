@@ -172,7 +172,7 @@ module ecs_service {
 }
 
 resource "aws_s3_bucket" "env_bucket" {
-  bucket = "my-bucket-name"
+  bucket = "librechat-${random_pet.bucket_suffix.id}"
 }
 
 resource "aws_s3_bucket_acl" "my_bucket_acl" {
@@ -182,51 +182,43 @@ resource "aws_s3_bucket_acl" "my_bucket_acl" {
 
 resource "aws_db_instance" "pgvector_db" {
   engine               = "postgres"
-  instance_class       = "db.t2.micro"
+  instance_class       = "db.t3.micro"
   allocated_storage    = 20
   storage_type         = "gp2"
   identifier           = "pgvector-db"
   username             = "admin"
+  engine_version = 16.2
   password             = random_password.pgvector_password.result
   publicly_accessible = false
-  vpc_security_group_ids = ["${aws_security_group.mongodb_sg.id}"]
+  vpc_security_group_ids = [aws_security_group.mongodb_sg.id]
   tags = {
     Name = "pgvector-db"
   }
 }
 
-resource "aws_docdb_cluster" "mongodb_cluster" {
-  cluster_identifier      = "mongodb-cluster"
-  engine                  = "docdb"
-  master_username         = "admin"
-  master_password         = random_password.mongodb_password.result
-  backup_retention_period = 7
-  preferred_backup_window = "07:00-09:00"
-  vpc_security_group_ids  = ["${aws_security_group.ecs_sg.id}"]
-  tags = {
-    Name = "mongodb-cluster"
-  }
-}
-
-resource "aws_docdb_cluster_instance" "mongodb_instance" {
-  identifier         = "mongodb-instance"
-  cluster_identifier = aws_docdb_cluster.mongodb_cluster.id
-  instance_class     = "db.r5.large"
-  tags = {
-    Name = "mongodb-instance"
-  }
-}
-
+# Meilisearch official AMI
 resource "aws_instance" "meilisearch" {
   ami           = "ami-0e8b58789f72d4790"
   instance_type = "t2.micro"
   key_name      = aws_key_pair.my_key_pair.key_name
+  vpc_security_group_ids = [aws_security_group.meilisearch_sg.id]
   tags = {
     Name = "meilisearch"
   }
 }
 
+# MongoDB EC2 much cheaper than DocDB
+resource "aws_instance" "mongodb" {
+  ami           = "aami-0e4d494a1d9570f8f"
+  instance_type = "t2.micro"
+  key_name      = aws_key_pair.my_key_pair.key_name
+  vpc_security_group_ids = [aws_security_group.mongodb_sg.id]
+  tags = {
+    Name = "mongodb"
+  }
+}
+
 resource "aws_key_pair" "my_key_pair" {
   key_name   = "my-key-pair"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC6..."
+  public_key = file("~/.ssh/id_rsa.pub")
 }
