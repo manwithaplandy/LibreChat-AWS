@@ -3,7 +3,7 @@ resource "aws_vpc" "vpc" {
   enable_dns_support = true
   enable_dns_hostnames = true
   tags = {
-    Name = "MyVPC"
+    Name = "LibreChat-VPC01"
   }
 }
 
@@ -21,5 +21,3 @@ resource "aws_subnet" "subnet_3" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = "10.0.3.0/24" 
 }
-
-
