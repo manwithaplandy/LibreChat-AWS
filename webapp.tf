@@ -65,27 +65,31 @@ module "ecs" {
             },
             {
               name = "MONGO_URI"
-              value = "REPLACEME" # TODO: Get this value
+              value = "${aws_docdb_cluster.mongodb_cluster.endpoint}"
             },
             {
               name = "MEILI_HOST"
-              value = "REPLACEME" # TODO: Update with meili url
+              value = "${aws_instance.meilisearch.private_ip}"
             },
             {
               name = "RAG_PORT"
-              value = "REPLACEME" # TODO: create variable and update here
+              value = "8000"
             }
           ]
           environment_files = [
             {
               type = "s3"
-              value = "REPLACEME" # Put .env files in S3 and reference here
+              value = "${aws_s3_bucket.env_bucket.arn}" 
             }
           ]
           mount_points = [
             {
               container_path = "./images"
-              source_volume = "REPLACEME"
+              source_volume = "/app/client/public/images"
+            },
+            {
+              container_path = "./logs"
+              source_volume = "/app/logs"
             }
           ]
           extra_hosts = [
@@ -112,7 +116,7 @@ module "ecs" {
             },
             {
               name = "RAG_PORT"
-              value = "REPLACEME" # TODO: Get RAG port
+              value = "8000"
             }
           ]
 
@@ -175,10 +179,73 @@ module "ecs" {
   }
 }
 
-# TODO: S3 bucket for .env files
+resource "aws_s3_bucket" "env_bucket" {
+  bucket = "my-bucket-name"
+}
 
-# TODO: RDS Postgres db for pgvector
+resource "aws_s3_bucket_acl" "my_bucket_acl" {
+  bucket = aws_s3_bucket.my_bucket.bucket
+  acl    = "private"
+}
 
-# TODO: DocumentDB for MongoDB service
+resource "aws_db_instance" "pgvector_db" {
+  engine               = "postgres"
+  instance_class       = "db.t2.micro"
+  allocated_storage    = 20
+  storage_type         = "gp2"
+  identifier           = "pgvector-db"
+  username             = "admin"
+  password             = random_password.pgvector_password.result
+  publicly_accessible = false
+  vpc_security_group_ids = ["${module.ecs.security_group_id}"]
+  tags = {
+    Name = "pgvector-db"
+  }
+}
 
-# TODO: Meilisearch EC2 on free tier
+resource "aws_docdb_cluster" "mongodb_cluster" {
+  cluster_identifier      = "mongodb-cluster"
+  engine                  = "docdb"
+  master_username         = "admin"
+  master_password         = random_password.mongodb_password.result
+  backup_retention_period = 7
+  preferred_backup_window = "07:00-09:00"
+  vpc_security_group_ids  = ["${module.ecs.security_group_id}"]
+  tags = {
+    Name = "mongodb-cluster"
+  }
+}
+
+resource "aws_docdb_cluster_instance" "mongodb_instance" {
+  identifier         = "mongodb-instance"
+  cluster_identifier = aws_docdb_cluster.mongodb_cluster.id
+  instance_class     = "db.r5.large"
+  tags = {
+    Name = "mongodb-instance"
+  }
+}
+
+resource "aws_security_group_rule" "mongodb_ingress" {
+  type                     = "ingress"
+  security_group_id        = aws_docdb_cluster.mongodb_cluster.vpc_security_group_ids[0]
+  from_port                = 27017
+  to_port                  = 27017
+  protocol                 = "tcp"
+  source_security_group_id = module.ecs.security_group_id
+}
+
+resource "aws_instance" "meilisearch" {
+  ami           = "ami-0e8b58789f72d4790"
+  instance_type = "t2.micro"
+  key_name      = aws_key_pair.my_key_pair.key_name
+  tags = {
+    Name = "meilisearch"
+  }
+}
+
+resource "aws_key_pair" "my_key_pair" {
+  key_name   = "my-key-pair"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC6..."
+}
+
+
