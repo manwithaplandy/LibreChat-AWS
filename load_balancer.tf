@@ -1,5 +1,5 @@
 resource "aws_lb_target_group" "ecs_target_group" {
-  name        = "librechat-ecs-target-group"
+  name        = "librechat-application-tg"
   port        = 3080
   protocol    = "HTTP"
   vpc_id      = aws_vpc.vpc.id
@@ -31,5 +31,21 @@ resource "aws_lb_listener" "listener" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.ecs_target_group.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "listener_rule" {
+  listener_arn = aws_lb_listener.listener.arn
+  priority     = 1
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ecs_target_group.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/"]
+    }
   }
 }
